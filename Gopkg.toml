@@ -38,4 +38,4 @@
   unused-packages = true
 
 [metadata.heroku]
-  root-pkg = "github.com/zachlatta/streambot"
+  root-package = "github.com/zachlatta/streambot"
