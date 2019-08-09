@@ -175,11 +175,11 @@ func main() {
 	go func() {
 		channels, _ := rtm.GetChannels(true)
 		for _, channel := range channels {
-			fmt.Println("joining", channel.Name)
-
-			if !(contains(ignoreChannelsCreatedByUserIds, channel.Creator)) {
+			if contains(ignoreChannelsCreatedByUserIds, channel.Creator) {
 				continue
 			}
+
+			fmt.Println("joining", channel.Name)
 
 			rtm.JoinChannel(channel.Name)
 
