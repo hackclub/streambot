@@ -15,7 +15,19 @@ var (
 	redisURL      = os.Getenv("REDIS_URL")
 	authToken     = os.Getenv("AUTH_TOKEN")
 	streamChannel = os.Getenv("STREAM_CHANNEL")
+
+	// Comma separated list of Slack user IDs. Streambot will not join channels craeted by them.
+	ignoreChannelsCreatedByUserIds = strings.Split(os.Getenv("IGNORE_CHANNELS_CREATED_BY_USER_IDS"), ",")
 )
+
+func contains(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
+}
 
 type Config struct {
 	db *redis.Client
@@ -164,6 +176,11 @@ func main() {
 		channels, _ := rtm.GetChannels(true)
 		for _, channel := range channels {
 			fmt.Println("joining", channel.Name)
+
+			if !(contains(ignoreChannelsCreatedByUserIds, channel.Creator)) {
+				continue
+			}
+
 			rtm.JoinChannel(channel.Name)
 
 			time.Sleep((5 * time.Second))
