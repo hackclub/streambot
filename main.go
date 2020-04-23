@@ -282,7 +282,7 @@ func main() {
 				}
 
 				toSend.Channel = "#" + channel.Name
-				toSend.Reaction = ev.Item.Type
+				toSend.Reaction = ev.Reaction
 			}
 
 			// log message type to ws
