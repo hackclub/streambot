@@ -1,1 +1,1 @@
-cli: streambot
+web: streambot
