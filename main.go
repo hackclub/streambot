@@ -222,9 +222,11 @@ func main() {
 			toSend := struct {
 				Type      string    `json:"type"`
 				Channel   string    `json:"channel,omitempty"`
+				URL       string    `json:"url,omitempty"`
 				Timestamp time.Time `json:"timestamp"`
 			}{
 				msg.Type,
+				"",
 				"",
 				time.Now(),
 			}
@@ -266,7 +268,21 @@ func main() {
 				}
 
 				toSend.Channel = "#" + channel.Name
+			case *slack.ReactionAddedEvent:
+				// Ignore messages if not in a public channel
+				if !strings.HasPrefix(ev.Item.Channel, "C") {
+					fmt.Println(ev.Item.Channel, "ignoring because not public")
+					return
+				}
 
+				channel, err := rtm.GetChannelInfo(ev.Item.Channel)
+				if err != nil {
+					log.Println("Error getting channel info:", err)
+					return
+				}
+
+				toSend.Channel = "#" + channel.Name
+				toSend.URL = ev.Item.File
 			}
 
 			// log message type to ws
