@@ -248,6 +248,24 @@ func main() {
 				}
 
 				toSend.Channel = "#" + channel.Name
+			case *slack.UserTypingEvent:
+				if ev.User == "USLACKBOT" || ev.User == "" || ev.Channel == streamChannel {
+					return
+				}
+
+				// Ignore messages if not in a public channel
+				if !strings.HasPrefix(ev.Channel, "C") {
+					fmt.Println(ev.Channel, "ignoring because not public")
+					return
+				}
+
+				channel, err := rtm.GetChannelInfo(ev.Channel)
+				if err != nil {
+					log.Println("Error getting channel info:", err)
+					return
+				}
+
+				toSend.Channel = "#" + channel.Name
 
 			}
 
