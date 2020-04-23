@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/go-redis/redis"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 )
 
 var (
