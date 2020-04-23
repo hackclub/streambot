@@ -101,8 +101,8 @@ func streamMsgAttachment(api *slack.Client, attachment slack.Attachment) error {
 func streamMsg(api *slack.Client, rtm *slack.RTM, ev *slack.MessageEvent) {
 	user, err := rtm.GetUserInfo(ev.User)
 	if err != nil {
-		fmt.Println(ev.User)
-		log.Fatal("Error getting user:", err)
+		log.Println("Error getting user:", err)
+		return
 	}
 
 	channelName := ""
@@ -112,7 +112,8 @@ func streamMsg(api *slack.Client, rtm *slack.RTM, ev *slack.MessageEvent) {
 	} else {
 		channel, err := rtm.GetChannelInfo(ev.Channel)
 		if err != nil {
-			log.Fatal("Error getting channel info:", err)
+			log.Println("Error getting channel info:", err)
+			return
 		}
 
 		channelName = "#" + channel.Name
@@ -144,7 +145,8 @@ func streamTyping(api *slack.Client, rtm *slack.RTM, ev *slack.UserTypingEvent) 
 		fmt.Println(ev.Channel)
 		channel, err := rtm.GetChannelInfo(ev.Channel)
 		if err != nil {
-			log.Fatal("Error getting channel info:", err)
+			log.Println("Error getting channel info:", err)
+			return err
 		}
 
 		channelName = "#" + channel.Name
