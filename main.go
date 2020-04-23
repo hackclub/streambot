@@ -219,14 +219,40 @@ func main() {
 		fmt.Println("Event Received:", msg)
 
 		go func() {
-			// log message type to ws
-			toSendToWs, err := json.Marshal(struct {
+			toSend := struct {
 				Type      string    `json:"type"`
+				Channel   string    `json:"channel"`
 				Timestamp time.Time `json:"timestamp"`
 			}{
 				msg.Type,
+				"",
 				time.Now(),
-			})
+			}
+
+			switch ev := msg.Data.(type) {
+			case *slack.MessageEvent:
+				if ev.User == "USLACKBOT" || ev.User == "" || ev.Channel == streamChannel {
+					return
+				}
+
+				// Ignore messages if not in a public channel
+				if !strings.HasPrefix(ev.Channel, "C") {
+					fmt.Println(ev.Channel, "ignoring because not public")
+					return
+				}
+
+				channel, err := rtm.GetChannelInfo(ev.Channel)
+				if err != nil {
+					log.Println("Error getting channel info:", err)
+					return
+				}
+
+				toSend.Channel = "#" + channel.Name
+
+			}
+
+			// log message type to ws
+			toSendToWs, err := json.Marshal(toSend)
 			if err != nil {
 				fmt.Println("error encoding json for ws:", err)
 			} else {
