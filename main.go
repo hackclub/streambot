@@ -222,7 +222,7 @@ func main() {
 			toSend := struct {
 				Type      string    `json:"type"`
 				Channel   string    `json:"channel,omitempty"`
-				URL       string    `json:"url,omitempty"`
+				Reaction  string    `json:"reaction,omitempty"`
 				Timestamp time.Time `json:"timestamp"`
 			}{
 				msg.Type,
@@ -282,7 +282,7 @@ func main() {
 				}
 
 				toSend.Channel = "#" + channel.Name
-				toSend.URL = ev.Item.File
+				toSend.Reaction = ev.Item.Type
 			}
 
 			// log message type to ws
