@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -100,7 +102,7 @@ func streamMsg(api *slack.Client, rtm *slack.RTM, ev *slack.MessageEvent) {
 	user, err := rtm.GetUserInfo(ev.User)
 	if err != nil {
 		fmt.Println(ev.User)
-		log.Fatal("Error:", err)
+		log.Fatal("Error getting user:", err)
 	}
 
 	channelName := ""
@@ -110,7 +112,7 @@ func streamMsg(api *slack.Client, rtm *slack.RTM, ev *slack.MessageEvent) {
 	} else {
 		channel, err := rtm.GetChannelInfo(ev.Channel)
 		if err != nil {
-			log.Fatal("Error:", err)
+			log.Fatal("Error getting channel info:", err)
 		}
 
 		channelName = "#" + channel.Name
@@ -139,9 +141,10 @@ func streamTyping(api *slack.Client, rtm *slack.RTM, ev *slack.UserTypingEvent) 
 	if strings.HasPrefix(ev.Channel, "D") {
 		channelName = "In DM with streambot"
 	} else {
+		fmt.Println(ev.Channel)
 		channel, err := rtm.GetChannelInfo(ev.Channel)
 		if err != nil {
-			log.Fatal("Error:", err)
+			log.Fatal("Error getting channel info:", err)
 		}
 
 		channelName = "#" + channel.Name
@@ -162,6 +165,27 @@ func streamTyping(api *slack.Client, rtm *slack.RTM, ev *slack.UserTypingEvent) 
 }
 
 func main() {
+	// websocket stuff
+	hub := newHub()
+	go hub.run()
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		serveWs(hub, w, r)
+	})
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "1337"
+	}
+
+	go func() {
+		fmt.Println("websocket server listening on :" + port)
+		err := http.ListenAndServe(":"+port, nil)
+		if err != nil {
+			log.Fatal("error with websocket server: ", err)
+		}
+	}()
+
+	// streambot (slack stuff)
 	config, err := NewConfig(redisURL)
 	if err != nil {
 		log.Fatal(err)
@@ -191,6 +215,21 @@ func main() {
 
 	for msg := range rtm.IncomingEvents {
 		fmt.Println("Event Received:", msg)
+
+		// log message type to ws
+		toSendToWs, err := json.Marshal(struct {
+			Type      string    `json:"type"`
+			Timestamp time.Time `json:"timestamp"`
+		}{
+			msg.Type,
+			time.Now(),
+		})
+		if err != nil {
+			fmt.Println("error encoding json for ws:", err)
+		} else {
+			fmt.Println("broadcasting msg type to ws...")
+			hub.broadcast <- toSendToWs
+		}
 
 		switch ev := msg.Data.(type) {
 		case *slack.MessageEvent:
