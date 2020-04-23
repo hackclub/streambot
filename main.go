@@ -218,20 +218,22 @@ func main() {
 	for msg := range rtm.IncomingEvents {
 		fmt.Println("Event Received:", msg)
 
-		// log message type to ws
-		toSendToWs, err := json.Marshal(struct {
-			Type      string    `json:"type"`
-			Timestamp time.Time `json:"timestamp"`
-		}{
-			msg.Type,
-			time.Now(),
-		})
-		if err != nil {
-			fmt.Println("error encoding json for ws:", err)
-		} else {
-			fmt.Println("broadcasting msg type to ws...")
-			hub.broadcast <- toSendToWs
-		}
+		go func() {
+			// log message type to ws
+			toSendToWs, err := json.Marshal(struct {
+				Type      string    `json:"type"`
+				Timestamp time.Time `json:"timestamp"`
+			}{
+				msg.Type,
+				time.Now(),
+			})
+			if err != nil {
+				fmt.Println("error encoding json for ws:", err)
+			} else {
+				fmt.Println("broadcasting msg type to ws...")
+				hub.broadcast <- toSendToWs
+			}
+		}()
 
 		switch ev := msg.Data.(type) {
 		case *slack.MessageEvent:
