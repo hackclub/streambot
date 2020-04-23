@@ -221,7 +221,7 @@ func main() {
 		go func() {
 			toSend := struct {
 				Type      string    `json:"type"`
-				Channel   string    `json:"channel"`
+				Channel   string    `json:"channel,omitempty"`
 				Timestamp time.Time `json:"timestamp"`
 			}{
 				msg.Type,
