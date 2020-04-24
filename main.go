@@ -266,7 +266,9 @@ func main() {
 				}
 
 				toSend.Channel = "#" + channel.Name
-
+			default:
+				// Don't send non-message/typing events to ws
+				return
 			}
 
 			// log message type to ws
