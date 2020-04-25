@@ -271,6 +271,11 @@ func main() {
 				return
 			}
 
+			// Respect ignored channels and users while sending to ws
+			// if !config.ChannelActive(msg.Data.Channel) || !config.UserActive(msg.Data.User) {
+			// 	return
+			// }
+
 			// log message type to ws
 			toSendToWs, err := json.Marshal(toSend)
 			if err != nil {
