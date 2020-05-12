@@ -116,7 +116,7 @@ func streamMsg(api *slack.Client, rtm *slack.RTM, ev *slack.MessageEvent) {
 			return
 		}
 
-		channelName = "#" + channel.Name
+		channelName = "<#" + channel.Conversation.ID + ">"
 	}
 
 	attachment := slack.Attachment{
