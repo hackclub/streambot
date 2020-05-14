@@ -9,164 +9,31 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-redis/redis"
+	"github.com/joho/godotenv"
 	"github.com/slack-go/slack"
+	"github.com/zachlatta/streambot/util"
 )
 
 var (
-	redisURL      = os.Getenv("REDIS_URL")
-	authToken     = os.Getenv("AUTH_TOKEN")
+	redisURL                       string
+	authToken                      string
+	streamChannel                  string
+	ignoreChannelsCreatedByUserIds []string
+)
+
+func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	redisURL = os.Getenv("REDIS_URL")
+	authToken = os.Getenv("AUTH_TOKEN")
 	streamChannel = os.Getenv("STREAM_CHANNEL")
 
 	// Comma separated list of Slack user IDs. Streambot will not join channels created by them.
 	ignoreChannelsCreatedByUserIds = strings.Split(os.Getenv("IGNORE_CHANNELS_CREATED_BY_USER_IDS"), ",")
-)
 
-func contains(s []string, e string) bool {
-	for _, a := range s {
-		if a == e {
-			return true
-		}
-	}
-	return false
-}
-
-type Config struct {
-	db *redis.Client
-}
-
-func NewConfig(redisURL string) (Config, error) {
-	opts, err := redis.ParseURL(redisURL)
-	if err != nil {
-		return Config{}, err
-	}
-
-	client := redis.NewClient(opts)
-
-	return Config{
-		db: client,
-	}, nil
-}
-
-func (c *Config) UserActive(id string) bool {
-	if err := c.db.Get(id).Err(); err != nil {
-		if err == redis.Nil {
-			return true
-		}
-	}
-
-	return false
-}
-
-func (c *Config) EnableUser(id string) {
-	c.db.Del(id)
-
-}
-
-func (c *Config) DisableUser(id string) {
-	c.db.Set(id, true, 0)
-}
-
-func (c *Config) ChannelActive(id string) bool {
-	if err := c.db.Get(id).Err(); err != nil {
-		if err == redis.Nil {
-			return true
-		}
-	}
-
-	return false
-}
-
-func (c *Config) EnableChannel(id string) {
-	c.db.Del(id)
-}
-
-func (c *Config) DisableChannel(id string) {
-	c.db.Set(id, true, 0)
-}
-
-func streamMsgAttachment(api *slack.Client, attachment slack.Attachment) error {
-	if attachment.Color == "" {
-		attachment.Color = "#0040FF"
-	}
-
-	_, _, err := api.PostMessage(streamChannel, slack.MsgOptionAttachments(attachment), slack.MsgOptionAsUser(true))
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func streamMsg(api *slack.Client, rtm *slack.RTM, ev *slack.MessageEvent) {
-	user, err := rtm.GetUserInfo(ev.User)
-	if err != nil {
-		log.Println("Error getting user:", err)
-		return
-	}
-
-	channelName := ""
-
-	if strings.HasPrefix(ev.Channel, "D") {
-		channelName = "In DM with streambot"
-	} else {
-		channel, err := rtm.GetChannelInfo(ev.Channel)
-		if err != nil {
-			log.Println("Error getting channel info:", err)
-			return
-		}
-
-		channelName = "<#" + channel.Conversation.ID + ">"
-	}
-
-	attachment := slack.Attachment{
-		AuthorID:      user.ID,
-		AuthorName:    user.Profile.DisplayName,
-		AuthorSubname: channelName,
-		AuthorIcon:    user.Profile.ImageOriginal,
-
-		Text: ev.Text,
-	}
-
-	streamMsgAttachment(api, attachment)
-}
-
-func streamTyping(api *slack.Client, rtm *slack.RTM, ev *slack.UserTypingEvent) error {
-	user, err := rtm.GetUserInfo(ev.User)
-	if err != nil {
-		return err
-	}
-
-	channelName := ""
-
-	if strings.HasPrefix(ev.Channel, "D") {
-		channelName = "In DM with streambot"
-	} else {
-		fmt.Println(ev.Channel)
-		channel, err := rtm.GetChannelInfo(ev.Channel)
-		if err != nil {
-			log.Println("Error getting channel info:", err)
-			return err
-		}
-
-		channelName = "#" + channel.Name
-	}
-
-	channel, timestamp, err := api.PostMessage(streamChannel, slack.MsgOptionText("_"+user.Name+" is typing in "+channelName+"…_", false), slack.MsgOptionAsUser(true))
-	if err != nil {
-		return err
-	}
-
-	time.Sleep(1 * time.Second)
-
-	if _, _, err := api.DeleteMessage(channel, timestamp); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func main() {
 	// websocket stuff
 	hub := newHub()
 	go hub.run()
@@ -201,7 +68,7 @@ func main() {
 	go func() {
 		channels, _ := rtm.GetChannels(true)
 		for _, channel := range channels {
-			if contains(ignoreChannelsCreatedByUserIds, channel.Creator) {
+			if util.Contains(ignoreChannelsCreatedByUserIds, channel.Creator) {
 				continue
 			}
 
