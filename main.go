@@ -1,10 +1,8 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -12,6 +10,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/slack-go/slack"
 	"github.com/zachlatta/streambot/util"
+	"github.com/zachlatta/streambot/ws"
 )
 
 var (
@@ -35,24 +34,14 @@ func main() {
 	ignoreChannelsCreatedByUserIds = strings.Split(os.Getenv("IGNORE_CHANNELS_CREATED_BY_USER_IDS"), ",")
 
 	// websocket stuff
-	hub := newHub()
-	go hub.run()
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		serveWs(hub, w, r)
-	})
-
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "1337"
+	wsPort := os.Getenv("PORT")
+	if wsPort == "" {
+		wsPort = "1337"
 	}
 
-	go func() {
-		fmt.Println("websocket server listening on :" + port)
-		err := http.ListenAndServe(":"+port, nil)
-		if err != nil {
-			log.Fatal("error with websocket server: ", err)
-		}
-	}()
+	server := ws.NewServer(wsPort)
+
+	go server.Serve()
 
 	// streambot (slack stuff)
 	config, err := NewConfig(redisURL)
@@ -86,15 +75,7 @@ func main() {
 		fmt.Println("Event Received:", msg)
 
 		go func() {
-			toSend := struct {
-				Type      string    `json:"type"`
-				Channel   string    `json:"channel,omitempty"`
-				Timestamp time.Time `json:"timestamp"`
-			}{
-				msg.Type,
-				"",
-				time.Now(),
-			}
+			toSend := ws.NewActivity(msg.Type, "")
 
 			switch ev := msg.Data.(type) {
 			case *slack.MessageEvent:
@@ -114,7 +95,7 @@ func main() {
 					return
 				}
 
-				toSend.Channel = "#" + channel.Name
+				toSend.ChannelName = "#" + channel.Name
 			case *slack.UserTypingEvent:
 				if ev.User == "USLACKBOT" || ev.User == "" || ev.Channel == streamChannel {
 					return
@@ -132,18 +113,11 @@ func main() {
 					return
 				}
 
-				toSend.Channel = "#" + channel.Name
-
+				toSend.ChannelName = "#" + channel.Name
 			}
 
 			// log message type to ws
-			toSendToWs, err := json.Marshal(toSend)
-			if err != nil {
-				fmt.Println("error encoding json for ws:", err)
-			} else {
-				fmt.Println("broadcasting msg type to ws...")
-				hub.broadcast <- toSendToWs
-			}
+			server.Broadcast(toSend)
 		}()
 
 		switch ev := msg.Data.(type) {
