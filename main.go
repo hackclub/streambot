@@ -3,10 +3,12 @@ package main
 import (
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"strings"
 	"time"
 
+	ipinfoApi "github.com/ipinfo/go-ipinfo/ipinfo"
 	"github.com/joho/godotenv"
 	"github.com/slack-go/slack"
 	"github.com/zachlatta/streambot/util"
@@ -33,6 +35,13 @@ func main() {
 	// Comma separated list of Slack user IDs. Streambot will not join channels created by them.
 	ignoreChannelsCreatedByUserIds = strings.Split(os.Getenv("IGNORE_CHANNELS_CREATED_BY_USER_IDS"), ",")
 
+	// set up ipinfo
+	ipInfoToken := os.Getenv("IPINFO_TOKEN")
+
+	authTransport := ipinfoApi.AuthTransport{Token: ipInfoToken}
+	httpClient := authTransport.Client()
+	ipinfo := ipinfoApi.NewClient(httpClient)
+
 	// websocket stuff
 	wsPort := os.Getenv("PORT")
 	if wsPort == "" {
@@ -45,6 +54,7 @@ func main() {
 
 	// streambot (slack stuff)
 	config, err := NewConfig(redisURL)
+	fmt.Println(redisURL)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -53,6 +63,44 @@ func main() {
 
 	rtm := api.NewRTM()
 	go rtm.ManageConnection()
+
+	func() {
+		for range time.Tick(10 * time.Second) {
+			fmt.Println("polling access logs to update ip info in db")
+
+			logins, _, err := api.GetAccessLogs(slack.AccessLogParameters{1000, 0})
+			if err != nil {
+				fmt.Println("error getting access logs:", err)
+				return
+			}
+
+			for _, login := range logins {
+				_, present, err := config.GetIPInfo(login.IP)
+				if err != nil {
+					log.Println("error checking IP info in DB:", err)
+					continue
+				}
+
+				// don't get an ip's info twice to save api calls
+				if !present {
+					info, err := ipinfo.GetInfo(net.ParseIP(login.IP))
+					if err != nil {
+						log.Println("error getting ipinfo:", err)
+						continue
+					}
+
+					if err := config.StoreIPInfo(*info); err != nil {
+						log.Println("error storing ip info:", err)
+						continue
+					}
+				}
+
+				config.StoreUserIP(login.UserID, login.IP)
+			}
+
+			fmt.Println("done!")
+		}
+	}()
 
 	go func() {
 		channels, _ := rtm.GetChannels(true)
