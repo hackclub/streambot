@@ -18,7 +18,7 @@ var (
 	authToken     = os.Getenv("AUTH_TOKEN")
 	streamChannel = os.Getenv("STREAM_CHANNEL")
 
-	// Comma separated list of Slack user IDs. Streambot will not join channels craeted by them.
+	// Comma separated list of Slack user IDs. Streambot will not join channels created by them.
 	ignoreChannelsCreatedByUserIds = strings.Split(os.Getenv("IGNORE_CHANNELS_CREATED_BY_USER_IDS"), ",")
 )
 
