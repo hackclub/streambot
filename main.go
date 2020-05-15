@@ -64,7 +64,7 @@ func main() {
 	rtm := api.NewRTM()
 	go rtm.ManageConnection()
 
-	func() {
+	go func() {
 		for range time.Tick(10 * time.Second) {
 			fmt.Println("polling access logs to update ip info in db")
 
