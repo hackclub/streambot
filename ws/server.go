@@ -11,6 +11,7 @@ import (
 type Activity struct {
 	Type        string     `json:"type"`
 	ChannelName string     `json:"channel,omitempty"`
+	Reaction    string     `json:"reaction,omitempty"`
 	Timestamp   time.Time  `json:"timestamp"`
 	From        []string   `json:"from"`
 	To          [][]string `json:"to"`

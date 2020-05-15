@@ -227,6 +227,21 @@ func main() {
 
 					toSend.To = activeLocations
 				}
+			case *slack.ReactionAddedEvent:
+				// Ignore messages if not in a public channel
+				if !strings.HasPrefix(ev.Item.Channel, "C") {
+					fmt.Println(ev.Item.Channel, "ignoring because not public")
+					return
+				}
+
+				channel, err := rtm.GetChannelInfo(ev.Item.Channel)
+				if err != nil {
+					log.Println("Error getting channel info:", err)
+					return
+				}
+
+				toSend.ChannelName = "#" + channel.Name
+				toSend.Reaction = ev.Reaction
 			}
 
 			// log message type to ws
