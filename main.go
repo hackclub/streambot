@@ -23,10 +23,8 @@ var (
 )
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
+	godotenv.Load()
+
 	redisURL = os.Getenv("REDIS_URL")
 	authToken = os.Getenv("AUTH_TOKEN")
 	streamChannel = os.Getenv("STREAM_CHANNEL")
