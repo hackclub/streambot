@@ -1,4 +1,4 @@
-module github.com/zachlatta/streambot
+module github.com/hackclub/streambot
 
 go 1.14
 
