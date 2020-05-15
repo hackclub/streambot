@@ -9,9 +9,11 @@ import (
 )
 
 type Activity struct {
-	Type        string    `json:"type"`
-	ChannelName string    `json:"channel,omitempty"`
-	Timestamp   time.Time `json:"timestamp"`
+	Type        string     `json:"type"`
+	ChannelName string     `json:"channel,omitempty"`
+	Timestamp   time.Time  `json:"timestamp"`
+	From        []string   `json:"from"`
+	To          [][]string `json:"to"`
 }
 
 func NewActivity(activityType, channel string) Activity {

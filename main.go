@@ -27,7 +27,6 @@ func main() {
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
-
 	redisURL = os.Getenv("REDIS_URL")
 	authToken = os.Getenv("AUTH_TOKEN")
 	streamChannel = os.Getenv("STREAM_CHANNEL")
@@ -144,6 +143,39 @@ func main() {
 				}
 
 				toSend.ChannelName = "#" + channel.Name
+
+				config.RegisterActiveUserInChannel(ev.Channel, ev.User)
+
+				// add from user info
+				// todo remove duplication
+				info, present, err := config.GetUserIPInfo(ev.User)
+				if err != nil {
+					log.Println("Error getting current user's IP info:", err)
+				} else if !present {
+					log.Println("User's IP info not in DB.")
+				} else {
+					toSend.From = strings.Split(info.Location, ",")
+				}
+
+				userIds, err := config.GetActiveUsersInChannel(ev.Channel)
+				if err != nil {
+					log.Println("error getting active users in channel from DB:", err)
+				} else {
+					activeLocations := [][]string{}
+
+					for _, userId := range userIds {
+						info, present, err := config.GetUserIPInfo(userId)
+						if err != nil {
+							log.Println("Error getting active user's IP info:", err)
+						} else if !present {
+							log.Println("User's IP info not in DB.")
+						} else {
+							activeLocations = append(activeLocations, strings.Split(info.Location, ","))
+						}
+					}
+
+					toSend.To = activeLocations
+				}
 			case *slack.UserTypingEvent:
 				if ev.User == "USLACKBOT" || ev.User == "" || ev.Channel == streamChannel {
 					return
@@ -162,6 +194,39 @@ func main() {
 				}
 
 				toSend.ChannelName = "#" + channel.Name
+
+				config.RegisterActiveUserInChannel(ev.Channel, ev.User)
+
+				// add from user info
+				// todo remove duplication
+				info, present, err := config.GetUserIPInfo(ev.User)
+				if err != nil {
+					log.Println("Error getting current user's IP info:", err)
+				} else if !present {
+					log.Println("User's IP info not in DB.")
+				} else {
+					toSend.From = strings.Split(info.Location, ",")
+				}
+
+				userIds, err := config.GetActiveUsersInChannel(ev.Channel)
+				if err != nil {
+					log.Println("error getting active users in channel from DB:", err)
+				} else {
+					activeLocations := [][]string{}
+
+					for _, userId := range userIds {
+						info, present, err := config.GetUserIPInfo(userId)
+						if err != nil {
+							log.Println("Error getting active user's IP info:", err)
+						} else if !present {
+							log.Println("User's IP info not in DB.")
+						} else {
+							activeLocations = append(activeLocations, strings.Split(info.Location, ","))
+						}
+					}
+
+					toSend.To = activeLocations
+				}
 			}
 
 			// log message type to ws

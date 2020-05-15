@@ -121,3 +121,11 @@ func (c *Config) GetUserIPInfo(userId string) (info ipinfo.Info, present bool, e
 
 	return c.GetIPInfo(ip)
 }
+
+func (c *Config) RegisterActiveUserInChannel(channelId, userId string) {
+	c.db.SAdd("active_channel_members/"+channelId, userId)
+}
+
+func (c *Config) GetActiveUsersInChannel(channelId string) ([]string, error) {
+	return c.db.SMembers("active_channel_members/" + channelId).Result()
+}
