@@ -11,8 +11,8 @@ import (
 	ipinfoApi "github.com/ipinfo/go-ipinfo/ipinfo"
 	"github.com/joho/godotenv"
 	"github.com/slack-go/slack"
-	"github.com/zachlatta/streambot/util"
-	"github.com/zachlatta/streambot/ws"
+	"github.com/hackclub/streambot/util"
+	"github.com/hackclub/streambot/ws"
 )
 
 var (
